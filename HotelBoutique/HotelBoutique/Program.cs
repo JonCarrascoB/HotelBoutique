@@ -17,8 +17,7 @@ namespace HotelBoutique
 
         static void Main(string[] args)
         {
-
-            int menuChoice = Convert.ToInt32(Console.ReadLine());
+            int menuChoice = 0;
             do
             {
                 Console.WriteLine("Hotel Boutique");
@@ -27,10 +26,13 @@ namespace HotelBoutique
                 Console.WriteLine("3. Check In");
                 Console.WriteLine("4. Check Out");
                 Console.WriteLine("5. Salir");
+
+                menuChoice = Convert.ToInt32(Console.ReadLine());
                 Menu(menuChoice);
+
             } while (menuChoice != 5);
 
-               Console.ReadLine();
+         Console.ReadLine();
         }
         public static void RegistrarCliente()
         {
@@ -97,56 +99,106 @@ namespace HotelBoutique
                 Console.WriteLine("El registro no existe");
             }
             conexion.Close();
+            registros.Close();
          return;
                 
         }
         public static void CheckIn()
         {
-            Console.WriteLine("introduzca el DNI del cliente");
-            string editDNI = Console.ReadLine();
+            
+                Console.WriteLine("introduzca el DNI del cliente");
+                string editDNI = Console.ReadLine();
 
-            //Editamos cliente
+                //Editamos cliente
+        
+                conexion.Open();
+                cadena = "SELECT * FROM CLIENTE WHERE DNI LIKE '" + editDNI + "'";
+                comando = new SqlCommand(cadena, conexion);
+                SqlDataReader registros = comando.ExecuteReader();
+
+                if (registros.Read())
+                {
+                    conexion.Close();
+                    Console.WriteLine("Cliente esta registrado");
+
+                    conexion.Open();
+                    cadena = "SELECT * FROM Habitación WHERE Estado like 'libre'";
+                    comando = new SqlCommand(cadena, conexion);
+                    SqlDataReader habitacion = comando.ExecuteReader();
+
+                    while (habitacion.Read())
+                    {
+                        Console.WriteLine(habitacion["CodHabitación"].ToString() + "\t" + habitacion["Estado"].ToString());
+                        Console.WriteLine();
+                    }
+
+                    Console.ReadLine();
+                    habitacion.Close();
+                    conexion.Close();
+
+                    //RESERVAR HABITACION
+
+                    Console.WriteLine("Elija el numero de su habitación");
+                    int codHabitacion = Convert.ToInt32(Console.ReadLine());
+                    conexion.Open();
+                    cadena = "UPDATE Habitación SET Estado = 'ocupado' WHERE CodHabitación LIKE'" + codHabitacion + "'";
+                    comando = new SqlCommand(cadena, conexion);
+                    comando.ExecuteNonQuery();
+                    conexion.Close();
+                
+                    
+
+                    conexion.Open();
+                    cadena = "INSERT INTO Reserva (CodReserva, CodHabitación, DNI, Checkin) VALUES ('" + codReserva + "','" + codHabitacion + "','" + DNI + "','" + DateTime.Today.ToString("dd/MM/yyyy") + "')";
+                    comando = new SqlCommand(cadena, conexion);
+                    comando.ExecuteNonQuery();
+                    conexion.Close();
+                    Console.WriteLine("Su habitación ha sido reservada");
+                    Console.ReadLine();
+                    exit = true;
+                }
+                else
+                {
+                Console.WriteLine("No se puede realizar la reserva, DNI inexistente, registre al cliente");
+                }
+            
+            return;
+        }
+        public static void CheckOut()
+        {
+            Console.WriteLine("Introduzca el DNI del cliente");
+            string DNI = Console.ReadLine();
 
             conexion.Open();
-            cadena = "SELECT * FROM CLIENTE WHERE DNI LIKE '" + editDNI + "'";
+            cadena = "SELECT * FROM CLIENTE WHERE DNI LIKE '" + DNI + "'";
             comando = new SqlCommand(cadena, conexion);
             SqlDataReader registros = comando.ExecuteReader();
 
             if (registros.Read())
             {
-                Console.WriteLine("El registro existe");
-                Console.WriteLine("Introduzca el nuevo nombre");
-                string nuevoNombre = Console.ReadLine();
-                Console.WriteLine("Introduzca los nuevos apellidos");
-                string nuevoApellidos = Console.ReadLine();
-
-
-                //Editamos los datos del cliente
                 conexion.Close();
+                Console.WriteLine("El Cliente esta registrado");
+
                 conexion.Open();
-                cadena = "UPDATE Cliente SET Nombre = '" + nuevoNombre + "' WHERE LIKE DNI '" + editDNI + "'";
-                comando = new SqlCommand(cadena, conexion);
-                comando.ExecuteNonQuery();
-                conexion.Close();
-                conexion.Open();
-                cadena = "UPDATE Cliente SET Apellidos = '" + nuevoApellidos + "' WHERE LIKE DNI '" + editDNI + "'";
+                cadena = "UPDATE Habitación SET Estado = 'libre' WHERE DNI LIKE'" + DNI + "'";
                 comando = new SqlCommand(cadena, conexion);
                 comando.ExecuteNonQuery();
                 conexion.Close();
 
-                Console.WriteLine("El cliente ha sido registrado de nuevo");
-                Console.ReadLine();
+                conexion.Open();
+                cadena = "INSERT INTO Reserva (Checkout) VALUES ('" + DateTime.Today.ToString("dd/MM/yyyy") + "')";
+                comando = new SqlCommand(cadena, conexion);
+                comando.ExecuteNonQuery();
+                conexion.Close();
+
+                Console.WriteLine("Se ha completado la salida del hotel");
             }
             else
             {
-                Console.WriteLine("El registro no existe");
+                Console.WriteLine("No se puede realizar el Check out, DNI inexistente, vuelva a introducir el DNI");
             }
-            conexion.Close();
-            return;
-        }
-        public static void CheckOut()
-        {
 
+            return;
         }
         public static void Menu(int Choice)
         {
@@ -165,9 +217,11 @@ namespace HotelBoutique
                         break;
                     case 3:
                         CheckIn();
+                        exit = true;
                         break;
                     case 4:
                         CheckOut();
+                        exit = true;
                         break;
                     case 5:
                         Console.WriteLine("Que tenga usted un buen día");
