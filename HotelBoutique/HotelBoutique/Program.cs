@@ -139,23 +139,32 @@ namespace HotelBoutique
                     //RESERVAR HABITACION
 
                     Console.WriteLine("Elija el numero de su habitación");
-                    int codHabitacion = Convert.ToInt32(Console.ReadLine());
+
+                    //Crear el codigo de Reserva
+
                     conexion.Open();
-                    cadena = "UPDATE Habitación SET Estado = 'ocupado' WHERE CodHabitación LIKE'" + codHabitacion + "'";
+                    cadena = "SELECT max(CodReserva) FROM Reserva";
+                    comando = new SqlCommand(cadena, conexion);
+                    SqlDataReader codReservaR = comando.ExecuteReader();
+                    int codReserva = Convert.ToInt32(codReservaR.Read())+1;
+                    conexion.Close();
+
+                    int codHabitación = Convert.ToInt32(Console.ReadLine());
+                            
+                    conexion.Open();
+                    cadena = "UPDATE Habitación SET Estado = 'ocupado' WHERE CodHabitación LIKE'" + codHabitación + "'";
                     comando = new SqlCommand(cadena, conexion);
                     comando.ExecuteNonQuery();
                     conexion.Close();
-                
-                    
 
                     conexion.Open();
-                    cadena = "INSERT INTO Reserva (CodReserva, CodHabitación, DNI, Checkin) VALUES ('" + codReserva + "','" + codHabitacion + "','" + DNI + "','" + DateTime.Today.ToString("dd/MM/yyyy") + "')";
+                    cadena = "INSERT INTO Reserva (CodReserva, CodHabitación, DNI, Checkin) VALUES ('" + codReserva + "','" + codHabitación + "','" + editDNI + "','" + DateTime.Today.ToString("dd/MM/yyyy") + "')";
                     comando = new SqlCommand(cadena, conexion);
                     comando.ExecuteNonQuery();
                     conexion.Close();
                     Console.WriteLine("Su habitación ha sido reservada");
                     Console.ReadLine();
-                    exit = true;
+                    //exit = true;
                 }
                 else
                 {
@@ -170,26 +179,38 @@ namespace HotelBoutique
             string DNI = Console.ReadLine();
 
             conexion.Open();
-            cadena = "SELECT * FROM CLIENTE WHERE DNI LIKE '" + DNI + "'";
+            cadena = "SELECT * FROM Reserva WHERE DNI LIKE '" + DNI + "' AND Checkout IS NULL";
             comando = new SqlCommand(cadena, conexion);
             SqlDataReader registros = comando.ExecuteReader();
 
             if (registros.Read())
             {
                 conexion.Close();
-                Console.WriteLine("El Cliente esta registrado");
+                //Console.WriteLine("El Cliente esta registrado");
 
                 conexion.Open();
-                cadena = "UPDATE Habitación SET Estado = 'libre' WHERE DNI LIKE'" + DNI + "'";
+                cadena = "UPDATE Reserva SET Checkout = GETDATE() WHERE DNI LIKE '"+DNI+"'";
                 comando = new SqlCommand(cadena, conexion);
                 comando.ExecuteNonQuery();
                 conexion.Close();
 
+                //Seleccionar el Codhabitacion del que hacemos el checkout
                 conexion.Open();
-                cadena = "INSERT INTO Reserva (Checkout) VALUES ('" + DateTime.Today.ToString("dd/MM/yyyy") + "')";
+                cadena = "SELECT CodHabitación FROM Reserva WHERE DNI LIKE '" + DNI + "'";
+                comando = new SqlCommand(cadena, conexion);
+                SqlDataReader codHabitaciónR = comando.ExecuteReader();
+
+                int codHabitación = Convert.ToInt32(codHabitaciónR.Read());
+                
+                conexion.Close();
+                //int CodHabitación = Convert.ToInt32(Console.ReadLine());
+
+                conexion.Open();
+                cadena = "UPDATE Habitación SET Estado = 'libre' WHERE CodHabitación LIKE'" + codHabitación + "'";
                 comando = new SqlCommand(cadena, conexion);
                 comando.ExecuteNonQuery();
                 conexion.Close();
+
 
                 Console.WriteLine("Se ha completado la salida del hotel");
             }
@@ -229,7 +250,7 @@ namespace HotelBoutique
                         break;
                 }
             } while(exit == false);
-            return;
+            //return;
         }
     }
 }
